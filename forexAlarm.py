@@ -16,52 +16,78 @@ sender = 'xxx@xxx.com'# 发件人邮箱(最好写全, 不然会失败)
 receivers = ['xxx@xxx.com']  # 接收邮件，可设置为你的QQ邮箱或者其他邮箱
 title = 'Rate Alarm'  # 邮件主题
 
-def sendEmail(mailmsg):
-	content = mailmsg
-	message = MIMEText(content, 'plain', 'utf-8')  # 内容, 格式, 编码
-	message['From'] = sender
-	message['To'] = ",".join(receivers)
-	message['Subject'] = title
-	smtpObj = smtplib.SMTP_SSL(mail_host, 465)  # 启用SSL发信 open SSL
-	smtpObj.login(user, password)  # 登录验证 login auth
-	smtpObj.sendmail(sender, receivers, message.as_string())  # 发送  send 
-	print("mail has been send successfully.")
-#except smtplib.SMTPException as e:
- #   print(e)
-def textrate(item):
-	content = requests.post(item).text	#parse webpage
-	soup = BeautifulSoup(content,"lxml")
-	textRate=soup.find('span', {'class': 'ccOutputRslt'}).text 
-	return textRate
+def sendEmail(user, mailmsg):
+    content = mailmsg
+    message = MIMEText(content, 'plain', 'utf-8')  # 内容, 格式, 编码
+    message['From'] = sender
+    message['To'] = ",".join(receivers)
+    message['Subject'] = title
+    smtpObj = smtplib.SMTP_SSL(mail_host, 465)  # 启用SSL发信
+    smtpObj.login(user, password)  # 登录验证
+    smtpObj.sendmail(sender, receivers, message.as_string())  # 发送
+    print("mail has been send successfully.")
+
+
+def getRate(item):
+    content = requests.get(item).text
+    return float(re.search(r"\d+.\d+",content).group())
 
 def intrate(item):
-	return float(re.search(r"\d+\.?\d*",item).group()) #get rate of type float
+    return float(re.search(r"\d+\.?\d*", item).group())
+
 
 def ringAlarm(rate):
-	os.system("osascript /Users/Sam_Du/alarm.scpt"+" "+rate)	#run applescript to call FaceTime
-	os.system("osascript /Users/Sam_Du/alarm1.scpt")			#for simulate the mouse click
+    os.system("osascript ~/alarm.scpt" + " " + str(rate))
+    os.system("osascript ~/alarm1.scpt")
 
-pound="http://www.x-rates.com/calculator/?from=GBP&to=CNY&amount=1"	#GBP TO CNY
-dollar="http://www.x-rates.com/calculator/?from=USD&to=CNY&amount=1" #USD TO CNY
-gbptousd="http://www.x-rates.com/calculator/?from=GBP&to=USD&amount=1"	#GBP TO USD
-array=[pound,dollar,gbptousd]
-i=0	#counter
-while i<5:	#alarm will not excess 5 times, otherwise its too noisy
-	textRate=list(map(textrate,array))
-	intRate=list(map(intrate, textRate))
-	print (textRate) #for check reason
-	mailmsg = "\r\n\r\n".join(["\r\n",time.strftime('%Y-%m-%d %H:%M',time.localtime(time.time()))+" 英镑 "+textRate[0]+" 美元 "+textRate[1]])
-	if intRate[0]<=8.12 or intRate[0]>=8.33: #this can set by yourselves
-		ringAlarm("大事不好，机会来了！")# Ring FaceTime. Shit! Hurry up! Your Fortune comes!
-		sendEmail(mailmsg)	#send email to your box
-		time.sleep(45)
-		i+=1
-		continue
-	elif intRate[0]<=8.3 or intRate[0]>=8.28:
-		sendEmail(user,mailmsg)
-		ringAlarm(textRate[0])
-		time.sleep(30)
-		continue
-	else:
-		time.sleep(15)
+pound = "http://www.x-rates.com/calculator/?from=GBP&to=CNY&amount=1"
+dollar = "http://www.x-rates.com/calculator/?from=USD&to=CNY&amount=1"
+currency=["GBP","EUR","XAU","USX"]
+gbptousd="https://www.easymarkets.com/chartsweb/ChartsHandler.ashx?mn=getLastRate&buyCurrency=GBP&sellCurrency=USD&productType=3&uid=1"
+eurtousd="https://www.easymarkets.com/chartsweb/ChartsHandler.ashx?mn=getLastRate&buyCurrency=EUR&sellCurrency=USD&productType=3&uid=1"
+
+def getrateArray(currArray):
+    price=[]
+    for item in currArray:
+        url="https://www.easymarkets.com/chartsweb/ChartsHandler.ashx?mn=getLastRate&buyCurrency="+item+"&sellCurrency=USD&productType=3&uid=1"
+        price.append(getRate(url))
+    return dict(zip(currArray,price))
+
+
+def getGold():
+    string = "http://data-asg.goldprice.org/GetData/USD-XAU/1"
+    req = requests.get(string).text
+    responseJson = json.loads(req)
+    # print(responseJson.get("f")[1].get("f"))
+    return responseJson[0]
+i = 0
+j = 0
+goldPrice = getGold()
+startRate = getRate(gbptousd)
+alarm_goldh = float(goldPrice[8:]) * 1.0010
+alarm_goldl = float(goldPrice[8:]) * 0.9990
+alarm_rateh = startRate * 1.0008
+alarm_ratel = startRate * 0.9992
+while i < 3 and j < 3:
+    forexDict=getrateArray(currency)
+    print(forexDict)
+    print("\n")
+    #mailmsg = "\r\n\r\n".join(["\r\n", time.strftime(
+    #   '%Y-%m-%d %H:%M', time.localtime(time.time())) + " 英镑 " + textRate[0] + " 美元 " + textRate[1]])
+    if forexDict['XAU'] <= 1200 or forexDict['XAU'] >= 1230:
+        sendEmail(user, mailmsg)
+        ringAlarm("大事不好，GOLD机会来了！")
+        time.sleep(35)
+        i += 1
+        continue
+    elif forexDict['GBP']<=alarm_ratel or forexDict['GBP']>=alarm_rateh or forexDict['XAU']>alarm_goldh or forexDict['XAU']<alarm_goldl:
+        ringAlarm(forexDict['GBP'])
+        time.sleep(12)
+        alarm_goldh*=1.0012
+        alarm_goldl*=0.9988
+        alarm_rateh*=1.0015
+        alarm_ratel*=0.9985
+        j+=1
+    else:
+        time.sleep(10)
 
