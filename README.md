@@ -29,9 +29,9 @@ There are two apple scripts called in python, one is to display notification, an
 
 You can change the alarm price here :
 
-![Snip20170216_6](/Users/Sam_Du/Desktop/Snip20170216_6.png)
+![Snip20170216_6](http://imgur.com/a/OJ5pB)
 
 And modify your iphone number here:
 
-![Snip20170216_8](/Users/Sam_Du/Desktop/Snip20170216_8.png)
+![Snip20170216_8](http://imgur.com/gTxc2xL)
 
