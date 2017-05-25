@@ -27,11 +27,15 @@ There are two apple scripts called in python, one is to display notification, an
 
 #### ScreenShots 
 
-You can change the alarm price here :
+You can change the growing rate here :
 
-![Snip20170216_6](http://i.imgsafe.org/4f0c1c69c0.png)
+![Imgur](http://i.imgur.com/StjYR1h.png) 
 
 And modify your iphone number here:
 
-![Snip20170216_8](http://i.imgsafe.org/4f09422e67.png)
+![Imgur](http://i.imgur.com/OiwRMG0.png)
+
+Additionally, there is a method implemented to send email when alarm triggered:
+
+![Imgur](http://i.imgur.com/WVWHtjl.png)
 
